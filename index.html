@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Météo locale</title>
+<meta name="description" content="Météo détaillée à votre position, mise à jour à chaque ouverture.">
+<meta name="theme-color" content="#eef2f7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#11161d" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Météo">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="stylesheet" href="style.css">
+<script>
+  /* Applique le theme choisi avant l'affichage pour eviter un flash. */
+  try { var t = localStorage.getItem('meteo.theme'); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; } catch (e) {}
+</script>
+</head>
+<body data-cat="cloud">
+<main class="page">
+
+  <section class="hero" aria-labelledby="t-synth">
+    <div class="topbar">
+      <button class="place-btn" id="place-btn" type="button" aria-haspopup="dialog">
+        <span data-i="pin"></span><span class="place-name" id="place">Localisation...</span><span class="chev" data-i="chevron"></span>
+      </button>
+      <div class="topbar-actions">
+        <button class="round" id="theme-btn" type="button" aria-label="Changer de thème" title="Thème : automatique"><span data-i="contrast"></span></button>
+        <button class="round" id="refresh" type="button" aria-label="Actualiser"><span data-i="refresh"></span></button>
+      </div>
+    </div>
+
+    <div class="hero-top">
+      <div class="hero-left">
+        <h1 id="t-synth">Synthèse</h1>
+        <p class="date" id="date"></p>
+        <div class="pill alert" id="alert" hidden></div>
+        <p class="kicker">Bulletin du jour</p>
+        <p class="bulletin" id="bulletin">Chargement des données...</p>
+        <a class="vigi" href="https://vigilance.meteofrance.fr/" target="_blank" rel="noopener">Vigilance officielle Météo-France</a>
+      </div>
+      <div class="hero-right">
+        <p class="kicker">En ce moment</p>
+        <p class="now-label"><span id="now-icon"></span><span id="now-label">--</span></p>
+        <p class="now-temp"><span id="now-temp">--</span><small>°C</small></p>
+        <p class="pill soft" id="now-trend">--</p>
+        <p class="pill outline">Prévision modèle</p>
+      </div>
+    </div>
+
+    <div class="card timeline-card">
+      <p class="kicker">Maintenant</p>
+      <p class="tl-text" id="tl-text">--</p>
+      <div class="timeline" id="timeline" role="img" aria-label="Évolution du temps sur les 18 prochaines heures"></div>
+      <div class="tl-axis" id="tl-axis"></div>
+    </div>
+
+    <div class="card nowcast" id="nowcast-card" hidden>
+      <div class="row-between">
+        <h3><span class="ico tint-teal" data-i="rain"></span>Pluie dans l’heure</h3>
+        <span class="pill outline">2 h · pas de 15 min</span>
+      </div>
+      <p class="tl-text" id="nowcast-text">--</p>
+      <div class="nc-bars" id="nowcast-bars" role="img" aria-label="Pluie prévue par quart d’heure"></div>
+    </div>
+    <p class="status" id="status" role="status"></p>
+  </section>
+
+  <section class="block" aria-labelledby="t-next">
+    <h2 id="t-next">Prochaines heures <span class="sub">Jusqu’à 36 h</span></h2>
+    <article class="card">
+      <div class="hourly" id="hourly" tabindex="0" aria-label="Prévisions heure par heure, défilement horizontal"></div>
+    </article>
+    <article class="card" id="advice-card" hidden>
+      <header class="card-head"><h3><span class="ico tint-violet" data-i="shirt"></span>Conseils du jour</h3><span class="pill outline">Indicatif</span></header>
+      <ul class="advice" id="advice"></ul>
+    </article>
+  </section>
+
+  <section class="block" aria-labelledby="t-today">
+    <h2 id="t-today">Aujourd’hui <span class="sub">Mesures et ressenti</span></h2>
+
+    <article class="card feel">
+      <header class="card-head">
+        <h3><span class="ico tint-red" data-i="thermo"></span>Ressenti</h3>
+      </header>
+      <p class="big"><span id="feel-val">--</span><small>°C</small></p>
+      <div class="row-between wrap">
+        <p class="muted"><strong id="feel-label">--</strong> <span id="feel-diff"></span></p>
+        <div class="chips">
+          <span class="chip"><span data-i="drop"></span><span id="chip-hum">--</span></span>
+          <span class="chip"><span data-i="wind"></span><span id="chip-wind">--</span></span>
+        </div>
+      </div>
+      <div class="gauge"><div class="gauge-bar"></div><div class="gauge-dot" id="gauge-dot"></div></div>
+      <div class="gauge-scale"><span>−5°</span><span>45°</span></div>
+    </article>
+
+    <div class="grid3">
+      <article class="card">
+        <header class="card-head">
+          <h3><span class="ico tint-teal" data-i="rain"></span>Pluie</h3>
+        </header>
+        <div class="row-between">
+          <p class="big"><span id="rain-val">--</span><small>mm</small></p>
+          <p class="pill teal" id="rain-rate">--</p>
+        </div>
+        <p class="muted">Depuis minuit</p>
+        <p class="cap">7 derniers jours · mm</p>
+        <div class="bars" id="rain-bars"></div>
+        <dl class="stats">
+          <div><dt>7 jours</dt><dd id="rain-7d">--</dd></div>
+          <div><dt>Mois</dt><dd id="rain-month">--</dd></div>
+          <div><dt>Année</dt><dd id="rain-year">--</dd></div>
+        </dl>
+        <p class="note" id="rain-note"></p>
+      </article>
+
+      <article class="card">
+        <header class="card-head">
+          <h3><span class="ico tint-blue" data-i="wind"></span>Vent</h3>
+        </header>
+        <div class="row-between">
+          <div>
+            <p class="big"><span id="wind-val">--</span><small>km/h</small></p>
+            <p class="muted" id="wind-label">--</p>
+          </div>
+          <div class="compass" aria-hidden="true"><span class="n">N</span><svg id="wind-arrow" viewBox="0 0 24 24"><path d="M12 3l6 17-6-4-6 4z"/></svg></div>
+        </div>
+        <p class="cap">6 dernières heures · km/h</p>
+        <svg class="chart" id="wind-chart" viewBox="0 0 300 90" preserveAspectRatio="none" role="img" aria-label="Vent moyen et rafales sur 6 heures"></svg>
+        <div class="axis"><span>−6 h</span><span>−3 h</span><span>MAINTENANT</span></div>
+        <p class="legend"><i class="l-solid"></i>Vent moyen <i class="l-dot"></i>Rafales</p>
+        <dl class="stats">
+          <div><dt>Rafales</dt><dd id="wind-gust">--</dd></div>
+          <div><dt>Direction</dt><dd id="wind-dir">--</dd></div>
+          <div><dt>Max. du jour</dt><dd id="wind-max">--</dd></div>
+        </dl>
+      </article>
+
+      <article class="card">
+        <header class="card-head">
+          <h3><span class="ico tint-violet" data-i="gauge"></span>Pression</h3>
+        </header>
+        <div class="row-between">
+          <div>
+            <p class="big"><span id="pres-val">--</span><small>hPa</small></p>
+            <p class="muted" id="pres-label">--</p>
+          </div>
+          <p class="pill violet" id="pres-trend">--</p>
+        </div>
+        <p class="cap">6 dernières heures · hPa</p>
+        <svg class="chart" id="pres-chart" viewBox="0 0 300 90" preserveAspectRatio="none" role="img" aria-label="Pression sur 6 heures"></svg>
+        <div class="axis"><span>−6 H</span><span>−3 H</span><span>MAINTENANT</span></div>
+        <dl class="stats">
+          <div><dt>Il y a 6 h</dt><dd id="pres-6h">--</dd></div>
+          <div><dt>Min.</dt><dd id="pres-min">--</dd></div>
+          <div><dt>Max.</dt><dd id="pres-max">--</dd></div>
+        </dl>
+      </article>
+    </div>
+
+    <div class="chips center">
+      <span class="chip sun"><span data-i="sun"></span><span id="chip-rad">--</span></span>
+      <span class="chip"><span data-i="drop"></span><span id="chip-dew">--</span></span>
+    </div>
+
+    <article class="card sun-card" id="sun-card" hidden>
+      <header class="card-head"><h3><span class="ico tint-yellow" data-i="sunrise"></span>Soleil et lune</h3></header>
+      <div class="sun-grid">
+        <div>
+          <svg class="arc" id="sun-arc" viewBox="0 0 300 120" role="img" aria-label="Position du soleil entre le lever et le coucher"></svg>
+          <div class="arc-times"><span><b id="sunrise">--</b><i>Lever</i></span><span class="mid"><b id="daylight">--</b><i>Durée du jour</i></span><span><b id="sunset">--</b><i>Coucher</i></span></div>
+        </div>
+        <dl class="stats list">
+          <div><dt>UV max aujourd’hui</dt><dd id="uv-max">--</dd></div>
+          <div><dt>UV maintenant</dt><dd id="uv-now">--</dd></div>
+          <div class="moon"><dt>Lune</dt><dd><span id="moon-ico"></span><span id="moon-name">--</span> <small id="moon-pct"></small></dd></div>
+        </dl>
+      </div>
+    </article>
+  </section>
+
+  <section class="block" aria-labelledby="t-days">
+    <h2 id="t-days">Prévisions <span class="sub">10 jours</span></h2>
+    <article class="card">
+      <ul class="days" id="days"></ul>
+    </article>
+  </section>
+
+  <section class="block" aria-labelledby="t-radar">
+    <h2 id="t-radar">Radar de pluie <span class="sub">2 dernières heures</span></h2>
+    <article class="card radar" id="radar-card">
+      <div class="map-wrap">
+        <div id="map" aria-label="Carte du radar de pluie"></div>
+        <button class="map-lock" id="map-lock" type="button"><span>Toucher pour déplacer la carte</span></button>
+        <p class="map-msg" id="map-msg" hidden></p>
+      </div>
+      <div class="radar-ctl">
+        <button class="round" id="radar-play" type="button" aria-label="Lecture"><span data-i="play"></span></button>
+        <input id="radar-range" type="range" min="0" max="0" value="0" aria-label="Image du radar">
+        <span class="radar-time" id="radar-time">--</span>
+      </div>
+      <p class="note">Intensité de la pluie : bleu clair faible, bleu foncé forte. Données RainViewer, fond de carte OpenStreetMap.</p>
+    </article>
+  </section>
+
+  <section class="block" aria-labelledby="t-air">
+    <h2 id="t-air">Air et pollens</h2>
+    <div class="grid2">
+      <article class="card">
+        <header class="card-head">
+          <h3><span class="ico tint-green" data-i="leaf"></span>Air extérieur</h3>
+          <span class="pill outline">Indice européen</span>
+        </header>
+        <p class="muted" id="air-place">--</p>
+        <div class="index">
+          <svg viewBox="0 0 64 64" aria-hidden="true"><circle class="ring-bg" cx="32" cy="32" r="26"/><circle class="ring" id="air-ring" cx="32" cy="32" r="26"/></svg>
+          <span class="index-num" id="air-num">--</span>
+          <div><p class="kicker">Indice du jour</p><p class="index-label" id="air-label">--</p><p class="muted" id="air-level">--</p></div>
+        </div>
+        <details>
+          <summary>Détail des polluants</summary>
+          <dl class="stats list" id="air-detail"></dl>
+        </details>
+      </article>
+
+      <article class="card">
+        <header class="card-head">
+          <h3><span class="ico tint-green" data-i="flower"></span>Pollens</h3>
+          <span class="pill outline">Estimation</span>
+        </header>
+        <p class="muted" id="pol-place">--</p>
+        <div class="index">
+          <svg viewBox="0 0 64 64" aria-hidden="true"><circle class="ring-bg" cx="32" cy="32" r="26"/><circle class="ring" id="pol-ring" cx="32" cy="32" r="26"/></svg>
+          <span class="index-num" id="pol-num">--</span>
+          <div><p class="kicker">Indice du jour</p><p class="index-label" id="pol-label">--</p><p class="muted" id="pol-level">--</p></div>
+        </div>
+        <details>
+          <summary>Détail des pollens</summary>
+          <dl class="stats list" id="pol-detail"></dl>
+        </details>
+      </article>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <p>Données : <a href="https://open-meteo.com/" rel="noopener">Open-Meteo</a> (modèles météo, qualité de l’air, pollens Europe, archive ERA5, recherche de villes), <a href="https://www.rainviewer.com/" rel="noopener">RainViewer</a> (radar), BigDataCloud (nom du lieu), © contributeurs OpenStreetMap. Ce ne sont pas des mesures de station ni la vigilance officielle : en cas d’alerte, consultez Météo-France.</p>
+  </footer>
+</main>
+
+<dialog class="sheet" id="sheet" aria-labelledby="sheet-title">
+  <div class="sheet-head">
+    <h2 id="sheet-title">Lieux</h2>
+    <button class="round" id="sheet-close" type="button" aria-label="Fermer"><span data-i="close"></span></button>
+  </div>
+  <p class="sheet-hint" id="sheet-hint" hidden></p>
+  <button class="place-row gps" id="use-gps" type="button"><span class="ico tint-blue" data-i="target"></span><span><b>Ma position</b><i>Suit le téléphone à chaque ouverture</i></span></button>
+  <form class="search" id="search-form" role="search" autocomplete="off">
+    <span data-i="search"></span>
+    <input id="search-input" type="search" placeholder="Rechercher une ville" aria-label="Rechercher une ville" enterkeyhint="search">
+  </form>
+  <ul class="place-list" id="search-results" aria-live="polite"></ul>
+  <h3 class="sheet-sub">Lieux enregistrés</h3>
+  <ul class="place-list" id="saved-list"></ul>
+  <p class="note" id="saved-empty">Aucun lieu enregistré. Recherchez une ville pour l’ajouter.</p>
+</dialog>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
